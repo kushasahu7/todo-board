@@ -9,6 +9,11 @@ never at risk.
 
 ![todo-board rendering a Markdown TODO as an EPIC / status board](docs/screenshot.png)
 
+Pick a theme on the left; its items open on the right, grouped into **In Progress / To Do /
+Done**. Expand any item for its full detail:
+
+![Detail view — a theme selected with one item expanded](docs/screenshot-detail.png)
+
 - **No build, no dependencies** — one Node script (built-in `http`/`fs`) + one HTML file.
 - **Live** — re-reads the file on every load, so editing the Markdown and refreshing is the
   whole workflow.
