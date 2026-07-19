@@ -7,6 +7,8 @@ Markdown file and get a clean, minimal EPIC/status board in your browser. Your f
 the single source of truth — the board never writes to it, so your prose and formatting are
 never at risk.
 
+![todo-board rendering a Markdown TODO as an EPIC / status board](docs/screenshot.png)
+
 - **No build, no dependencies** — one Node script (built-in `http`/`fs`) + one HTML file.
 - **Live** — re-reads the file on every load, so editing the Markdown and refreshing is the
   whole workflow.
