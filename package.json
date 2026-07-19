@@ -1,0 +1,30 @@
+{
+  "name": "todo-board",
+  "version": "1.0.0",
+  "description": "A zero-dependency, read-only EPIC/status board for a Markdown TODO file.",
+  "type": "module",
+  "bin": {
+    "todo-board": "server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "keywords": [
+    "todo",
+    "markdown",
+    "kanban",
+    "board",
+    "cli",
+    "productivity"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "server.mjs",
+    "index.html",
+    "example",
+    "FORMAT.md"
+  ]
+}

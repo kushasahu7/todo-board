@@ -1,0 +1,14 @@
+# Node
+node_modules/
+npm-debug.log*
+.npm/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local override of the TODO path is fine to keep out of the repo
+.env

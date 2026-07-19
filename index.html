@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TODO Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap">
+<style>
+  /* ── Theme ── customise these CSS variables to reskin the whole board.
+     Accent (--link) and the four impact colours are the main knobs. */
+  :root {
+    --paper: #fffdf9; --paper2: #f2ecff; --ink: #1a1a1a;
+    --muted: #6b6660; --faint: #a29c93; --rule: rgba(26,26,26,.14);
+    --link: #770ff5;
+    --crit: #d13b34; --high: #d97b12; --med: #b5921e; --low: #8a867b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0e0b16; --paper2: #191324; --ink: #fffdf9;
+      --muted: #a59fb2; --faint: #6d6680; --rule: rgba(255,253,249,.15);
+      --link: #9a48ff;
+      --crit: #f26862; --high: #f0a94e; --med: #ffc94a; --low: #8f8b9e;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #fffdf9; --paper2: #f2ecff; --ink: #1a1a1a; --muted: #6b6660;
+    --faint: #a29c93; --rule: rgba(26,26,26,.14); --link: #770ff5;
+    --crit: #d13b34; --high: #d97b12; --med: #b5921e; --low: #8a867b;
+  }
+  :root[data-theme="dark"] {
+    --paper: #0e0b16; --paper2: #191324; --ink: #fffdf9; --muted: #a59fb2;
+    --faint: #6d6680; --rule: rgba(255,253,249,.15); --link: #9a48ff;
+    --crit: #f26862; --high: #f0a94e; --med: #ffc94a; --low: #8f8b9e;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--paper); }
+  body {
+    margin: 0; color: var(--ink);
+    font: 13px/1.55 "Google Sans Code", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+  .frame { position: fixed; inset: 7px; border: 1px solid var(--ink); pointer-events: none; z-index: 100; }
+  a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+
+  header {
+    position: sticky; top: 0; z-index: 30; background: var(--paper);
+    border-bottom: 1px solid var(--ink); padding: 16px 26px 12px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px;
+  }
+  h1 { font-size: 19px; margin: 0; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; }
+  h1 span { color: var(--faint); font-weight: 400; }
+  .sub { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .grow { flex: 1 1 auto; }
+  .ctrl { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  input[type=search], select, button.link {
+    background: transparent; border: none; border-bottom: 1px solid var(--rule);
+    color: var(--ink); font: inherit; font-size: 12px; padding: 2px 2px 3px; border-radius: 0;
+  }
+  input[type=search]::placeholder { color: var(--faint); }
+  input[type=search]:focus, select:focus { outline: none; border-bottom-color: var(--ink); }
+  input[type=search] { min-width: 170px; }
+  select { cursor: pointer; }
+  button.link { cursor: pointer; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; border-bottom: none; }
+  button.link:hover { color: var(--ink); }
+
+  .wrap { display: grid; grid-template-columns: 400px 1fr; align-items: start; }
+  @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* left: EPIC index */
+  .left {
+    position: sticky; top: 60px; max-height: calc(100vh - 60px); overflow: auto;
+    border-right: 1px solid var(--ink); padding: 8px 0 40px;
+  }
+  @media (max-width: 820px) { .left { position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--ink); } }
+  .left-cap { font-size: 11px; color: var(--faint); padding: 8px 20px 6px; letter-spacing: .5px; text-transform: uppercase; }
+  .epic-cap {
+    font-size: 10.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .6px;
+    padding: 15px 20px 4px; border-top: 1px solid var(--rule); margin-top: 2px;
+  }
+  .theme-row {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 20px;
+    cursor: pointer; user-select: none; font-size: 12.5px;
+  }
+  .theme-row:hover { background: var(--paper2); }
+  .theme-row.sel { background: var(--paper2); }
+  .theme-row .nm { flex: 1 1 auto; }
+  .theme-row.sel .nm { font-weight: 700; color: var(--link); }
+  .theme-row.all .nm { font-weight: 700; }
+  .theme-row .ct { color: var(--faint); font-size: 11px; flex: none; min-width: 30px; text-align: right; }
+  .agg { flex: none; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .agg .imp .d { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* right: status accordions */
+  .right { padding: 10px 30px 60px; }
+  .right-head { padding: 10px 2px 4px; border-bottom: 1px solid var(--ink); margin-bottom: 6px; }
+  .right-head h2 { font-size: 16px; margin: 0; font-weight: 700; }
+  .right-head .rmeta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  details.grp { border-bottom: 1px solid var(--rule); }
+  details.grp > summary {
+    list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 10px;
+    padding: 14px 2px 10px; font-weight: 700; font-size: 13px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  details.grp > summary::before { content: "+"; color: var(--faint); width: 12px; font-weight: 400; }
+  details.grp[open] > summary::before { content: "–"; }
+  details.grp > summary .gc { color: var(--faint); font-weight: 400; font-size: 12px; margin-left: auto; }
+  .grp-body { padding: 2px 0 12px; }
+
+  details.item { border-top: 1px solid var(--rule); }
+  details.item:first-child { border-top: none; }
+  details.item > summary { list-style: none; cursor: pointer; padding: 11px 2px 11px 22px; position: relative; }
+  details.item > summary::before { content: "+"; position: absolute; left: 2px; top: 11px; color: var(--faint); }
+  details.item[open] > summary::before { content: "–"; }
+  .item-flat { border-top: 1px solid var(--rule); }
+  .item-flat:first-child { border-top: none; }
+  .item-flat .it-head { padding: 11px 2px 11px 22px; }
+  .it-title { font-size: 12.5px; font-weight: 600; line-height: 1.45; }
+  .it-title code { font-size: 12px; background: var(--paper2); padding: 0 3px; }
+  .meta { margin-top: 6px; color: var(--muted); font-size: 11px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .tok { color: var(--muted); }
+  .tok.id { color: var(--ink); font-weight: 600; }
+  .imp { display: inline-flex; align-items: center; gap: 5px; }
+  .imp .d { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .sep { color: var(--faint); }
+  .sec { color: var(--faint); }
+
+  .body { font-size: 12.5px; color: var(--ink); padding: 2px 2px 14px 22px; }
+  .body p { margin: 9px 0; }
+  .body ul { margin: 7px 0; padding-left: 0; list-style: none; }
+  .body li { margin: 5px 0; padding-left: 18px; position: relative; }
+  .body li::before { content: "—"; position: absolute; left: 0; color: var(--faint); }
+  .body code { background: var(--paper2); padding: 0 4px; font-size: 12px; }
+  .body strong { font-weight: 700; }
+  .empty { color: var(--faint); font-size: 12px; padding: 20px 2px; }
+  .err { padding: 40px; color: var(--crit); }
+</style>
+</head>
+<body>
+<div class="frame"></div>
+
+<header>
+  <h1 id="boardTitle">TODO Board</h1>
+  <div class="sub" id="fileinfo">loading…</div>
+  <div class="grow"></div>
+  <div class="ctrl">
+    <input type="search" id="q" placeholder="search…" />
+    <select id="impactFilter">
+      <option value="">all impact</option>
+      <option value="crit">critical</option>
+      <option value="high">high</option>
+      <option value="med">medium</option>
+      <option value="low">low</option>
+    </select>
+    <button class="link" id="themeBtn">theme</button>
+    <button class="link" id="reload">reload</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="left" id="left"></aside>
+  <main class="right" id="right"><div class="empty">Loading TODO.md…</div></main>
+</div>
+
+<script>
+const IMPACT = {
+  '🔴': {key:'crit', label:'critical', color:'var(--crit)'},
+  '🟠': {key:'high', label:'high', color:'var(--high)'},
+  '🟡': {key:'med', label:'medium', color:'var(--med)'},
+  '⚪': {key:'low', label:'low', color:'var(--low)'},
+};
+const STATUS = [
+  {id:'inprogress', title:'In Progress', open:true},
+  {id:'backlog', title:'To Do', open:true},
+  {id:'done', title:'Done', open:false},
+];
+
+function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function mdInline(s){
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+function mdBlock(lines){
+  let html = '', inList = false;
+  for (const raw of lines) {
+    const m = raw.match(/^(\s*)[-*]\s+(.*)$/);
+    if (m) { if (!inList) { html += '<ul>'; inList = true; } html += '<li>' + mdInline(m[2]) + '</li>'; }
+    else { if (inList) { html += '</ul>'; inList = false; } if (raw.trim()) html += '<p>' + mdInline(raw.trim()) + '</p>'; }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function idToken(text){
+  const t = text.replace(/\*\*/g,'').trim();
+  const head = t.split(/\s+[·—-]\s+/)[0].trim();
+  const m = head.match(/^((?:S\d+[a-z]?(?:\/S\d+)?)|#\d+|6b(?:·\d+)?|GEO|S0b)\b/i);
+  return m ? m[1].toUpperCase() : null;
+}
+const STOP = new Set("with from this that more also into page pages work data list real both than when will each some need only done next then they have been over uses your ours make add adde adds using per via the and for are".split(" "));
+function sigTokens(s){
+  return [...new Set(s.toLowerCase().replace(/\*\*/g,'').split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !STOP.has(w)))];
+}
+let TIER_ROWS = [];
+function parseTierTables(lines){
+  const map = {}, rows = []; let tier = null;
+  for (const line of lines) {
+    const tm = line.match(/^###\s*Tier\s*(\d)/i);
+    if (tm) { tier = 'T' + tm[1]; continue; }
+    if (/^##\s/.test(line)) tier = null;
+    if (tier && /^\|/.test(line) && !/^\|\s*Task/i.test(line) && !/^\|[-:\s|]+\|$/.test(line)) {
+      const cells = line.split('|').map(c=>c.trim()).filter((c,i,a)=>i>0 && i<a.length-1);
+      if (cells.length >= 3) {
+        const task = cells[0], effort = cells[1].replace(/\*\*/g,'').replace(/\s*each\s*$/i,'').trim();
+        const impact = (cells[2].match(/[🔴🟠🟡⚪]/u)||[''])[0];
+        const rec = {tier, effort, impact}, id = idToken(task);
+        if (id) map[id] = rec;
+        map['name:'+task.replace(/\*\*/g,'').split(/\s+[·—-]\s+/).join(' ').toLowerCase().slice(0,40)] = rec;
+        rows.push({ tokens: sigTokens(task), impact, effort, tier });
+      }
+    }
+  }
+  TIER_ROWS = rows;
+  return map;
+}
+function titleOf(text){
+  const b = text.match(/\*\*([^*]+)\*\*/);
+  if (b) return b[1].replace(/\s*✅.*$/,'').trim();
+  const plain = text.replace(/`/g,'').split(/\s+—\s+|\.\s/)[0];
+  return plain.length > 90 ? plain.slice(0,90)+'…' : plain;
+}
+function statusOf(checked, marker, text){
+  const done = checked || marker === '✅';
+  const notShipped = /⏳|needs deploy|Remaining:/i.test(text);
+  if (done) return notShipped ? 'inprogress' : 'done';
+  if (marker === '🔄') return 'inprogress';
+  if (marker === '⬜') return 'backlog';
+  if (/⏳|🔄|⏸️|\bpartial\b|\bpaused\b|in progress/i.test(text)) return 'inprogress';
+  return 'backlog';
+}
+function stripHeading(s){
+  return s.replace(/[\p{Extended_Pictographic}️]/gu,'').replace(/[*`]/g,'').replace(/[:—]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function parse(md){
+  const lines = md.split('\n');
+  const tierMap = parseTierTables(lines);
+  const cards = [];
+  let h2 = '', h3 = '', h2imp = '', h3imp = '', inShipped = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const h = line.match(/^(#{2,4})\s+(.*)$/);
+    if (h) {
+      const level = h[1].length, txt = stripHeading(h[2]);
+      const rawImp = (h[2].match(/[🔴🟠🟡⚪]/u)||[''])[0];
+      if (level === 2) { h2 = txt; h3 = ''; h2imp = rawImp; h3imp = ''; }
+      else if (level === 3) { h3 = txt; h3imp = rawImp; }
+      inShipped = /recently shipped/i.test(h2 + h3);
+      continue;
+    }
+    const epic = h2, section = h3 || h2;
+    const secImp = h3 ? h3imp : h2imp, epicImp = h2imp;
+    if (inShipped) {
+      const s = line.match(/^-\s+\*\*(.+)$/);
+      if (s) cards.push(makeCard(true, null, '- **' + s[1], collectBody(lines, i), epic, section, tierMap, secImp, epicImp));
+      continue;
+    }
+    const cb = line.match(/^-\s+\[([ xX])\]\s+(.*)$/);
+    if (cb) { cards.push(makeCard(cb[1].toLowerCase()==='x', null, cb[2], collectBody(lines, i), epic, section, tierMap, secImp, epicImp)); continue; }
+    const sm = line.match(/^-\s+([✅🔄⬜])\s+(.*)$/);
+    if (sm) cards.push(makeCard(false, sm[1], sm[2], collectBody(lines, i), epic, section, tierMap, secImp, epicImp));
+  }
+  return cards;
+}
+function collectBody(lines, i){
+  const body = [];
+  for (let j = i+1; j < lines.length; j++) {
+    const l = lines[j];
+    if (/^#{2,4}\s/.test(l)) break;
+    if (/^-\s+(\[[ xX]\]|[✅🔄⬜])\s/.test(l)) break;
+    if (/^\s*$/.test(l) && body.length && /^\s*$/.test(lines[j+1]||'x')) break;
+    if (/^\|/.test(l) || /^>/.test(l)) { body.push(l.replace(/^>\s?/,'')); continue; }
+    body.push(l.replace(/^\s{1,4}/,''));
+  }
+  while (body.length && !body[body.length-1].trim()) body.pop();
+  return body;
+}
+function makeCard(checked, marker, text, bodyLines, epic, section, tierMap, secImpact, epicImpact){
+  const status = statusOf(checked, marker, text + '\n' + bodyLines.join('\n'));
+  const title = titleOf(text);
+  const impactEmoji = (text.match(/[🔴🟠🟡⚪]/u)||[''])[0];
+  const emojis = (text.match(/[⏳⏸️🔄🚨⚠️🎯]/gu)||[]);
+  const id = idToken(text);
+  let meta = id && tierMap[id];
+  if (!meta) meta = tierMap['name:' + title.toLowerCase().slice(0,40)];
+  const effort = meta?.effort || (text.match(/Effort\s*(XL|S–M|S-M|S|M|L)/i)||[])[1] || '';
+  const impact = impactEmoji || meta?.impact || '';
+  return {
+    id: id || '', title, status, epic, section, effort, impact,
+    secImpact: secImpact || '', epicImpact: epicImpact || '',
+    tier: meta?.tier || '', emojis, raw: text, body: bodyLines,
+    search: (title + ' ' + text + ' ' + epic + ' ' + section + ' ' + bodyLines.join(' ')).toLowerCase(),
+  };
+}
+
+// aggregate a theme's headline impact (highest) + effort (largest)
+const IMP_ORDER = ['🔴','🟠','🟡','⚪'];
+const EFF_VAL = { XL:4, L:3, M:2, S:1 };
+function effFirst(e){ return (e||'').replace(/\s*[–-].*$/,'').trim(); }
+function impRank(x){ const r = x ? IMP_ORDER.indexOf(x) : -1; return r >= 0 ? r : 99; }
+function betterImp(a, b){ return impRank(a) <= impRank(b) ? (a||'') : (b||''); }
+function betterEff(a, b){ return (EFF_VAL[effFirst(a)]||0) >= (EFF_VAL[effFirst(b)]||0) ? (a||'') : (b||''); }
+function maxMeta(a, b){ return { impact: betterImp(a.impact, b.impact), effort: betterEff(a.effort, b.effort) }; }
+
+function agg(cards, epicLevel){
+  let impact = '', ir = 99;
+  for (const c of cards) {
+    for (const cand of [c.impact, c.secImpact, epicLevel ? c.epicImpact : '']) {
+      const r = impRank(cand);
+      if (r < ir) { ir = r; impact = cand; }
+    }
+  }
+  let effort = '', ev = 0;
+  for (const c of cards) { const v = EFF_VAL[effFirst(c.effort)] || 0; if (v > ev) { ev = v; effort = c.effort; } }
+  return { impact, effort };
+}
+// best-matching Prioritization tier-table row for a theme name (token overlap)
+function matchTier(name){
+  const toks = sigTokens(name); if (!toks.length) return null;
+  let best = null, bScore = -1;
+  for (const r of TIER_ROWS) {
+    let shared = 0, strong = false;
+    for (const t of toks) if (r.tokens.includes(t)) { shared++; if (t.length >= 7) strong = true; }
+    const ok = shared >= 2 || (shared >= 1 && strong);
+    const score = shared * 10 + (strong ? 1 : 0);
+    if (ok && score > bScore) { bScore = score; best = r; }
+  }
+  return best ? { impact: best.impact, effort: best.effort } : null;
+}
+function withTier(meta, name){
+  const t = matchTier(name);
+  if (t) { if (!meta.impact) meta.impact = t.impact; if (!meta.effort) meta.effort = t.effort; }
+  return meta;
+}
+function sectionMeta(s){ return withTier(agg(s.cards, false), s.name); }
+function epicMeta(ep){
+  let a = agg(ep.cards, true);
+  for (const s of ep.sections) a = maxMeta(a, sectionMeta(s));
+  return withTier(a, ep.name);
+}
+function aggMetaHTML(meta){
+  const parts = [];
+  if (meta.impact && IMPACT[meta.impact]) {
+    const im = IMPACT[meta.impact];
+    parts.push(`<span class="imp"><span class="d" style="background:${im.color}"></span>${im.label}</span>`);
+  }
+  if (meta.effort) parts.push(`<span class="tok">${esc(meta.effort)}</span>`);
+  return parts.join('<span class="sep">·</span>');
+}
+
+// ---------- state + themes ----------
+let ALL = [], THEMES = [];
+let sel = { type: 'all' };
+
+// flat list of themes (one per distinct section), in file order, keeping the parent epic
+function buildThemes(cards){
+  const list = [], map = new Map();
+  for (const c of cards) {
+    const key = c.epic + ' ' + c.section;
+    let t = map.get(key);
+    if (!t) { t = { name: c.section, epic: c.epic, cards: [] }; map.set(key, t); list.push(t); }
+    t.cards.push(c);
+  }
+  return list;
+}
+
+// ---------- rendering ----------
+const q = document.getElementById('q');
+const impactFilter = document.getElementById('impactFilter');
+const tierRank = t => t ? parseInt(t.replace('T',''),10) : 9;
+
+function applyFilters(cards){
+  const term = q.value.trim().toLowerCase(), imp = impactFilter.value;
+  return cards.filter(c => (!term || c.search.includes(term)) && (!imp || IMPACT[c.impact]?.key === imp));
+}
+function baseCards(){
+  if (sel.type === 'all') return ALL;
+  const t = THEMES[sel.i];
+  return t ? t.cards : [];
+}
+function doneFrac(cards){ return cards.filter(c => c.status==='done').length + '/' + cards.length; }
+
+function renderLeft(){
+  const aggSpan = (meta) => { const a = aggMetaHTML(meta); return a ? `<span class="agg">${a}</span>` : ''; };
+  let html = `<div class="left-cap">Themes</div>`;
+  html += `<div class="theme-row all ${sel.type==='all'?'sel':''}" data-act="all">
+      <span class="nm">All items</span>${aggSpan(agg(ALL, true))}<span class="ct">${doneFrac(ALL)}</span></div>`;
+  let lastEpic = null;
+  THEMES.forEach((t, i) => {
+    if (t.epic !== lastEpic) {
+      lastEpic = t.epic;
+      if (t.epic && t.epic !== t.name) html += `<div class="epic-cap">${esc(t.epic)}</div>`;
+    }
+    const s = sel.type==='theme' && sel.i===i ? 'sel' : '';
+    html += `<div class="theme-row ${s}" data-i="${i}">
+      <span class="nm">${esc(t.name)}</span>${aggSpan(sectionMeta(t))}<span class="ct">${doneFrac(t.cards)}</span></div>`;
+  });
+  const left = document.getElementById('left');
+  left.innerHTML = html;
+  left.querySelectorAll('[data-act], [data-i]').forEach(el => {
+    el.onclick = () => {
+      sel = el.dataset.act === 'all' ? { type:'all' } : { type:'theme', i: +el.dataset.i };
+      renderLeft(); renderRight();
+    };
+  });
+}
+
+function metaHTML(c, withSection){
+  const parts = [];
+  if (c.id) parts.push(`<span class="tok id">${esc(c.id)}</span>`);
+  if (c.tier) parts.push(`<span class="tok">${c.tier}</span>`);
+  if (c.effort) parts.push(`<span class="tok">${esc(c.effort)}</span>`);
+  if (c.impact && IMPACT[c.impact]) {
+    const im = IMPACT[c.impact];
+    parts.push(`<span class="imp"><span class="d" style="background:${im.color}"></span>${im.label}</span>`);
+  }
+  for (const e of c.emojis) parts.push(`<span class="tok">${e}</span>`);
+  let html = parts.join('<span class="sep">·</span>');
+  if (withSection && c.section) html += `${parts.length?'<span class="sep">·</span>':''}<span class="sec">${esc(c.section)}</span>`;
+  return html;
+}
+function titleClip(t){ return t.length > 130 ? t.slice(0,130)+'…' : t; }
+
+// expanded body = description (raw minus the leading title) + any sub-bullets
+function bodyFor(c){
+  const desc = c.raw
+    .replace(/^-\s*/,'')
+    .replace(/^\*\*[^*]+\*\*/,'')       // drop the bold title, already shown in the summary
+    .replace(/^\s*[:：—-]\s*/,'').trim();
+  const lines = [];
+  if (desc && desc !== c.title) lines.push(desc);
+  lines.push(...(c.body || []));
+  return lines;
+}
+function itemHTML(c, withSection){
+  const hasBold = /\*\*[^*]+\*\*/.test(c.raw);
+  const t = hasBold ? mdInline('**'+titleClip(c.title)+'**') : esc(titleClip(c.title));
+  const m = metaHTML(c, withSection);
+  const head = `<div class="it-title">${t}</div>${m ? `<div class="meta">${m}</div>` : ''}`;
+  const bodyLines = bodyFor(c);
+  if (!bodyLines.length) return `<div class="item item-flat"><div class="it-head">${head}</div></div>`;
+  return `<details class="item"><summary>${head}</summary><div class="body">${mdBlock(bodyLines)}</div></details>`;
+}
+
+function renderRight(){
+  const cards = applyFilters(baseCards());
+  const withSection = sel.type === 'all';
+  const t = sel.type === 'theme' ? THEMES[sel.i] : null;
+  const title = t ? t.name : 'All items';
+  const epicCap = t && t.epic && t.epic !== t.name
+    ? `<div class="rmeta" style="text-transform:uppercase;letter-spacing:.5px">${esc(t.epic)}</div>` : '';
+  let html = `<div class="right-head"><h2>${esc(title)}</h2>${epicCap}
+    <div class="rmeta">${cards.length} item${cards.length===1?'':'s'} · ${doneFrac(cards)} done</div></div>`;
+  if (!cards.length) {
+    html += `<div class="empty">— nothing matches</div>`;
+  } else {
+    for (const g of STATUS) {
+      const items = cards.filter(c => c.status === g.id).sort((a,b)=>tierRank(a.tier)-tierRank(b.tier));
+      if (!items.length) continue;
+      html += `<details class="grp" ${g.open?'open':''}>
+        <summary>${g.title}<span class="gc">${items.length}</span></summary>
+        <div class="grp-body">${items.map(c=>itemHTML(c, withSection)).join('')}</div>
+      </details>`;
+    }
+  }
+  document.getElementById('right').innerHTML = html;
+}
+
+// theme toggle
+const themeBtn = document.getElementById('themeBtn');
+let themeMode = localStorage.getItem('kbTheme') || 'auto';
+function applyTheme(){
+  if (themeMode === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', themeMode);
+  themeBtn.textContent = 'theme: ' + themeMode;
+}
+themeBtn.onclick = () => {
+  themeMode = themeMode === 'auto' ? 'light' : themeMode === 'light' ? 'dark' : 'auto';
+  localStorage.setItem('kbTheme', themeMode); applyTheme();
+};
+applyTheme();
+
+async function load(){
+  try {
+    const md = await (await fetch('/api/todo', {cache:'no-store'})).text();
+    const h1 = (md.match(/^#\s+(.+?)\s*$/m) || [])[1];   // board title = the file's first "# heading"
+    if (h1) { document.getElementById('boardTitle').textContent = h1; document.title = h1; }
+    ALL = parse(md);
+    THEMES = buildThemes(ALL);
+    const done = ALL.filter(c=>c.status==='done').length;
+    const prog = ALL.filter(c=>c.status==='inprogress').length;
+    document.getElementById('fileinfo').textContent =
+      `${ALL.length} items · ${THEMES.length} themes · ${prog} in progress · ${done} done`;
+    renderLeft(); renderRight();
+  } catch (e) {
+    document.getElementById('right').innerHTML = '<div class="err">Failed to load TODO.md — is the server running?<br>'+esc(e.message)+'</div>';
+  }
+}
+q.oninput = renderRight;
+impactFilter.onchange = renderRight;
+document.getElementById('reload').onclick = load;
+load();
+</script>
+</body>
+</html>
