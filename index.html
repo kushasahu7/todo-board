@@ -91,6 +91,9 @@
   .theme-row .ct { color: var(--faint); font-size: 11px; flex: none; min-width: 30px; text-align: right; }
   .agg { flex: none; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
   .agg .imp .d { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .left-foot { display: block; padding: 18px 20px 24px; font-size: 10.5px; color: var(--faint);
+    text-decoration: none; border-top: 1px solid var(--rule); margin-top: 8px; }
+  .left-foot:hover { color: var(--link); }
 
   /* right: status accordions */
   .right { padding: 10px 30px 60px; }
@@ -410,6 +413,7 @@ function renderLeft(){
     html += `<div class="theme-row ${s}" data-i="${i}">
       <span class="nm">${esc(t.name)}</span>${aggSpan(sectionMeta(t))}<span class="ct">${doneFrac(t.cards)}</span></div>`;
   });
+  html += `<a class="left-foot" href="https://starithm.ai" target="_blank" rel="noopener">built by Starithm ↗</a>`;
   const left = document.getElementById('left');
   left.innerHTML = html;
   left.querySelectorAll('[data-act], [data-i]').forEach(el => {
@@ -422,7 +426,7 @@ function renderLeft(){
 
 function metaHTML(c, withSection){
   const parts = [];
-  if (c.id) parts.push(`<span class="tok id">${esc(c.id)}</span>`);
+  // c.id (e.g. "S4") is always the lead of the title, so don't repeat it in the meta line
   if (c.tier) parts.push(`<span class="tok">${c.tier}</span>`);
   if (c.effort) parts.push(`<span class="tok">${esc(c.effort)}</span>`);
   if (c.impact && IMPACT[c.impact]) {

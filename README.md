@@ -1,5 +1,7 @@
 # todo-board
 
+<sub>Built by [Starithm](https://starithm.ai) · MIT licensed</sub>
+
 A zero-dependency, **read-only** board for a Markdown `TODO.md` file. Point it at any
 Markdown file and get a clean, minimal EPIC/status board in your browser. Your file stays
 the single source of truth — the board never writes to it, so your prose and formatting are
