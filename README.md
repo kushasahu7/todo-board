@@ -52,9 +52,15 @@ The full contract — including how status (In Progress vs Done) is inferred —
 
 ## Theming
 
-Open `index.html` and edit the CSS variables at the top of the `<style>` block. The accent
-(`--link`) and the four impact colours (`--crit/--high/--med/--low`) are the main knobs;
-light and dark palettes are both defined. The font is
+Light and dark are both first-class — the board follows the system theme by default, and the
+`theme` button in the header cycles auto → light → dark. You can also deep-link a theme with
+`?theme=light` / `?theme=dark` / `?theme=auto`.
+
+![todo-board in light theme](docs/screenshot-light.png)
+
+Open `index.html` and edit the CSS variables at the top of the `<style>` block to reskin it.
+The accent (`--link`) and the four impact colours (`--crit/--high/--med/--low`) are the main
+knobs; light and dark palettes are both defined. The font is
 [Google Sans Code](https://fonts.google.com/specimen/Google+Sans+Code) with a system-monospace
 fallback when offline.
 

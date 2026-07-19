@@ -487,6 +487,9 @@ function renderRight(){
 
 // theme toggle
 const themeBtn = document.getElementById('themeBtn');
+// ?theme=light|dark|auto overrides (and persists) the stored theme — handy for deep links
+const urlTheme = new URLSearchParams(location.search).get('theme');
+if (urlTheme && ['light','dark','auto'].includes(urlTheme)) localStorage.setItem('kbTheme', urlTheme);
 let themeMode = localStorage.getItem('kbTheme') || 'auto';
 function applyTheme(){
   if (themeMode === 'auto') document.documentElement.removeAttribute('data-theme');
